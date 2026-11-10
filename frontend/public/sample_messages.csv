@@ -1,0 +1,9 @@
+id,message_text,source_type
+1,"URGENT: Your account has been compromised. Log in at http://fake-bank-auth.com to verify your details immediately.",email
+2,"Hey John, can we reschedule our 1:1 to tomorrow afternoon at 3 PM? Thanks!",email
+3,"WINNER! You've been chosen to receive a $500 gift voucher. Text CLAIM to 77210 now.",sms
+4,"Hi team, attached is the Q3 sprint retrospective agenda. Please review before Friday.",email
+5,"Free entry to win £1,000 cash! Call 09061701461 to claim your reward instantly. T&C apply.",sms
+6,"Don't forget to push your code changes to the dev branch before end of day.",email
+7,"Security Alert: We detected an unrecognized sign-in from Lagos, Nigeria. If this was not you, reset your password.",email
+8,"Thanks for ordering from FreshEats. Your delivery will arrive in approximately 25 minutes.",email

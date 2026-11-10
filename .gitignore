@@ -1,0 +1,40 @@
+
+# Python virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Node dependencies
+node_modules/
+frontend/node_modules/
+
+# Build files
+frontend/dist/
+dist/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Dataset files (download again using the script)
+dataset/*.csv
+dataset/*.zip
+dataset/SMSSpamCollection
+
+# Logs
+*.log
