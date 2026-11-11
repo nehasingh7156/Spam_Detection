@@ -25,8 +25,21 @@ import { useDetection } from '../context/DetectionContext';
 import StatCard from '../components/StatCard';
 import ChartCard from '../components/ChartCard';
 import EmptyState from '../components/EmptyState';
-import { downloadFile } from '../utils/csvUtils';
 import { formatScore } from '../utils/formatters';
+import {
+  Document,
+  Packer,
+  Paragraph,
+  Table,
+  TableRow,
+  TableCell,
+  TextRun,
+  HeadingLevel,
+  AlignmentType,
+  WidthType,
+  BorderStyle,
+  ShadingType,
+} from 'docx';
 
 export const Analytics = () => {
   const { history, loadEvaluationSamples, addToast } = useDetection();
@@ -129,31 +142,226 @@ export const Analytics = () => {
     return buckets;
   }, [filteredHistory]);
 
-  // Export Analytics Report as JSON
-  const handleExportReport = () => {
-    const report = {
-      title: 'EmailShield Threat Analytics Report',
-      generatedAt: new Date().toISOString(),
-      timeFilter: dateFilter,
-      summary: {
-        totalMessagesScanned: filteredStats.total,
-        spamDetected: filteredStats.spam,
-        safeMessages: filteredStats.ham,
-        detectionRatePct: Number(filteredStats.rate.toFixed(2)),
-        averageSpamDecisionScore: Number(filteredStats.avgSpam.toFixed(4)),
-        averageHamDecisionScore: Number(filteredStats.avgHam.toFixed(4)),
-      },
-      scoreDistribution,
-      modelInfo: {
-        classifier: 'Linear Support Vector Machine (LinearSVC)',
-        featureExtractor: 'TF-IDF Vectorizer',
-        datasetTrained: 'UCI SMS Spam Collection (5572 instances)',
-      },
-    };
+  // Export Analytics Report as Word (.docx)
+  const handleExportReport = async () => {
+    const generatedAt = new Date();
+    const dateStr = generatedAt.toLocaleString();
+    const filterLabel = dateFilter === 'ALL' ? 'All Time' : dateFilter;
 
-    const content = JSON.stringify(report, null, 2);
-    downloadFile(content, `emailshield_analytics_${Date.now()}.json`, 'application/json');
-    addToast('success', 'Threat intelligence report downloaded as JSON');
+    // Helper: create a plain text paragraph
+    const para = (text, opts = {}) =>
+      new Paragraph({
+        children: [new TextRun({ text, ...opts })],
+        spacing: { after: 120 },
+        alignment: opts.alignment || AlignmentType.LEFT,
+      });
+
+    // Helper: bold label + value on same line
+    const labelValue = (label, value) =>
+      new Paragraph({
+        children: [
+          new TextRun({ text: `${label}: `, bold: true, size: 20 }),
+          new TextRun({ text: String(value), size: 20 }),
+        ],
+        spacing: { after: 80 },
+      });
+
+    // Helper: build a table row
+    const tableRow = (cells, isHeader = false) =>
+      new TableRow({
+        children: cells.map(
+          (cell) =>
+            new TableCell({
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: String(cell),
+                      bold: isHeader,
+                      size: isHeader ? 20 : 18,
+                      color: isHeader ? 'FFFFFF' : '1E293B',
+                    }),
+                  ],
+                  alignment: AlignmentType.CENTER,
+                }),
+              ],
+              shading: isHeader
+                ? { type: ShadingType.SOLID, color: '1D4ED8', fill: '1D4ED8' }
+                : undefined,
+              width: { size: 25, type: WidthType.PERCENTAGE },
+              margins: { top: 80, bottom: 80, left: 100, right: 100 },
+              borders: {
+                top: { style: BorderStyle.SINGLE, size: 1, color: 'CBD5E1' },
+                bottom: { style: BorderStyle.SINGLE, size: 1, color: 'CBD5E1' },
+                left: { style: BorderStyle.SINGLE, size: 1, color: 'CBD5E1' },
+                right: { style: BorderStyle.SINGLE, size: 1, color: 'CBD5E1' },
+              },
+            })
+        ),
+      });
+
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children: [
+            // Title
+            new Paragraph({
+              text: 'SpamShield — Threat Analytics Report',
+              heading: HeadingLevel.TITLE,
+              spacing: { after: 200 },
+              alignment: AlignmentType.CENTER,
+            }),
+
+            // Subtitle / generated date
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Generated: ${dateStr}   |   Time Filter: ${filterLabel}`,
+                  size: 18,
+                  color: '64748B',
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 400 },
+            }),
+
+            // ── Section 1: KPI Summary ──────────────────────
+            new Paragraph({
+              text: '1. Key Performance Indicators',
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 200, after: 160 },
+            }),
+
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                tableRow(['Metric', 'Value'], true),
+                tableRow(['Total Messages Scanned', filteredStats.total.toLocaleString()]),
+                tableRow(['Spam Detected', filteredStats.spam.toLocaleString()]),
+                tableRow(['Safe (Ham) Messages', filteredStats.ham.toLocaleString()]),
+                tableRow(['Spam Detection Rate', `${filteredStats.rate.toFixed(2)}%`]),
+                tableRow(['Avg SVM Score — Spam', filteredStats.avgSpam.toFixed(4)]),
+                tableRow(['Avg SVM Score — Ham', filteredStats.avgHam.toFixed(4)]),
+              ],
+            }),
+
+            // ── Section 2: Distribution ───────────────────────
+            new Paragraph({
+              text: '2. Spam vs. Ham Distribution',
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400, after: 160 },
+            }),
+
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                tableRow(['Classification', 'Count', 'Percentage'], true),
+                tableRow([
+                  'Spam Threats',
+                  filteredStats.spam.toLocaleString(),
+                  `${filteredStats.rate.toFixed(1)}%`,
+                ]),
+                tableRow([
+                  'Legitimate (Ham)',
+                  filteredStats.ham.toLocaleString(),
+                  `${(100 - filteredStats.rate).toFixed(1)}%`,
+                ]),
+                tableRow([
+                  'Total',
+                  filteredStats.total.toLocaleString(),
+                  '100%',
+                ]),
+              ],
+            }),
+
+            // ── Section 3: SVM Decision Score Distribution ────
+            new Paragraph({
+              text: '3. SVM Decision Score Distribution',
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400, after: 160 },
+            }),
+
+            para(
+              'The SVM decision score represents the signed distance from the hyperplane. ' +
+                'Negative values indicate legitimate messages (Ham); positive values indicate Spam.',
+              { size: 18, color: '64748B' }
+            ),
+
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                tableRow(['Score Range', 'Classification', 'Message Count'], true),
+                ...scoreDistribution.map((b) =>
+                  tableRow([
+                    b.range,
+                    b.type === 'spam' ? 'Spam' : 'Ham',
+                    b.count.toLocaleString(),
+                  ])
+                ),
+              ],
+            }),
+
+            // ── Section 4: Daily Timeline ─────────────────────
+            ...(timelineData.length > 0
+              ? [
+                  new Paragraph({
+                    text: '4. Daily Detection Timeline',
+                    heading: HeadingLevel.HEADING_1,
+                    spacing: { before: 400, after: 160 },
+                  }),
+                  new Table({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    rows: [
+                      tableRow(['Date', 'Spam', 'Ham', 'Total'], true),
+                      ...timelineData.map((d) =>
+                        tableRow([d.date, d.spam, d.ham, d.total])
+                      ),
+                    ],
+                  }),
+                ]
+              : []),
+
+            // ── Section 5: Model Information ──────────────────
+            new Paragraph({
+              text: '5. Model Information',
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 400, after: 160 },
+            }),
+
+            labelValue('Classifier', 'Linear Support Vector Machine (LinearSVC)'),
+            labelValue('Feature Extractor', 'TF-IDF Vectorizer'),
+            labelValue('Training Dataset', 'UCI SMS Spam Collection (5,572 instances)'),
+            labelValue('Decision Boundary', 'SVM Hyperplane (score = 0)'),
+
+            // Footer note
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: '\nThis report was automatically generated by SpamShield and reflects only verified detection history stored locally in this session.',
+                  size: 16,
+                  color: '94A3B8',
+                  italics: true,
+                }),
+              ],
+              spacing: { before: 400 },
+            }),
+          ],
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `SpamShield_Analytics_Report_${Date.now()}.docx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    addToast('success', 'Analytics report downloaded as Word document (.docx)');
   };
 
   return (

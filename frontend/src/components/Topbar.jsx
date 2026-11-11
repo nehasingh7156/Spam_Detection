@@ -33,7 +33,6 @@ export const Topbar = ({
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const currentRoute = routeTitles[location.pathname] || {
@@ -140,7 +139,6 @@ export const Topbar = ({
             <button
               onClick={() => {
                 setShowNotifications(!showNotifications);
-                setShowProfile(false);
               }}
               className="relative p-2 rounded-lg text-cyber-muted hover:text-white hover:bg-cyber-card transition-colors"
               title="Security Alerts"
@@ -213,53 +211,6 @@ export const Topbar = ({
             )}
           </div>
 
-          {/* User Profile */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setShowProfile(!showProfile);
-                setShowNotifications(false);
-              }}
-              className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-cyber-card transition-colors border border-transparent hover:border-cyber-border"
-            >
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white font-bold text-xs shadow-sm">
-                SA
-              </div>
-              <div className="hidden lg:block text-left">
-                <p className="text-xs font-semibold text-cyber-text leading-tight">
-                  SecOps Admin
-                </p>
-                <p className="text-[10px] text-cyber-muted leading-tight font-mono">
-                  Tier-1 SOC
-                </p>
-              </div>
-            </button>
-
-            {showProfile && (
-              <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-cyber-card border border-cyber-border shadow-2xl p-3 z-50 animate-in fade-in zoom-in-95">
-                <div className="p-2 border-b border-cyber-border mb-2">
-                  <p className="text-xs font-semibold text-white">Security Operations</p>
-                  <p className="text-[11px] text-cyber-muted font-mono">admin@emailshield.local</p>
-                </div>
-                <div className="space-y-1">
-                  <Link
-                    to="/settings"
-                    onClick={() => setShowProfile(false)}
-                    className="block px-2.5 py-1.5 text-xs text-cyber-muted hover:text-white hover:bg-cyber-cardHover rounded-lg transition-colors"
-                  >
-                    API Settings & Config
-                  </Link>
-                  <Link
-                    to="/insights"
-                    onClick={() => setShowProfile(false)}
-                    className="block px-2.5 py-1.5 text-xs text-cyber-muted hover:text-white hover:bg-cyber-cardHover rounded-lg transition-colors"
-                  >
-                    Model Benchmarks
-                  </Link>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </header>
